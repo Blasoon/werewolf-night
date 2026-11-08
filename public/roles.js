@@ -26,6 +26,10 @@ const ROLES = {
     what: "If you die at night due to the Werewolves, you take someone down with you.",
     night: "No night action. Sleep.",
     tip: "When you die, immediately shoot one player of your choice. They die too." },
+  dunce: { name: "Dunce", team: "Individual", img: "cards/dunce.png", icon: "icons/dunce.png", color: "#59b2b6",
+    what: "You are the village idiot. You win if you get voted out by the rest of the players.",
+    night: "Sleep. Keep your eyes closed.",
+    tip: "Act suspicious. Make people think you are a wolf. If they vote you out, you win." }
 };
-const NIGHT_ORDER = ["werewolf", "defender", "seer", "witch"]; // narrator wakes these in turn
+const NIGHT_ORDER = ["werewolf", "seer", "defender", "witch"]; // narrator wakes these in turn
 const BACK = "cards/back.png";

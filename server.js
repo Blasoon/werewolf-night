@@ -4,7 +4,7 @@ const PORT = process.env.PORT || 3000;
 const PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml" };
 // Keep in sync with public/roles.js (villager is "everyone else", so it isn't listed)
-const ROLE_KEYS = ["werewolf", "defender", "hunter", "seer", "witch"];
+const ROLE_KEYS = ["werewolf", "defender", "hunter", "seer", "witch", "dunce"];
 const games = new Map();
 const rid = () => crypto.randomBytes(8).toString("hex");
 const fail = (m, s = 400) => Object.assign(new Error(m), { status: s });
