@@ -76,6 +76,35 @@ const t = async (name, fn) => { try { await fn(); console.log("ok   " + name); }
     await post({ action: "again", code: g.code, hostToken: g.hostToken });
     const s = await host(g); assert.equal(s.status, "lobby"); assert.equal(s.winner, null); assert.equal(s.players.length, 5);
   });
+  await t("with a Thief, the Thief and a werewolf always go to players", async () => {
+    for (let i = 0; i < 25; i++) { const g = await mk(4, { werewolf: 1, thief: 1 }); const r = Object.values(g.roles); assert.equal(r.length, 4); assert(r.includes("werewolf") && r.includes("thief")); assert.equal((await host(g)).thief.center.length, 2); }
+    const g = await post({ action: "create" });
+    for (const x of ["a", "b", "c"]) await post({ action: "join", code: g.code, name: x });
+    await post({ action: "counts", code: g.code, hostToken: g.hostToken, counts: { thief: 1 } });
+    assert.equal((await post({ action: "deal", code: g.code, hostToken: g.hostToken })).status, 400);
+  });
+  await t("the Thief sees the middle cards only once woken, and can swap", async () => {
+    const g = await mk(6, { werewolf: 1, seer: 1, thief: 1 }); const th = of(g, "thief")[0], other = g.ids.find(i => i !== th);
+    const peek = () => post({ action: "state", code: g.code, pid: th });
+    assert.equal((await peek()).options, undefined);
+    assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "0" })).status, 400);
+    await post({ action: "thiefwake", code: g.code, hostToken: g.hostToken });
+    const o = (await peek()).options; assert.equal(o.length, 2);
+    assert.equal((await post({ action: "state", code: g.code, pid: other })).options, undefined);
+    assert.equal((await post({ action: "thiefpick", code: g.code, pid: other, choice: "0" })).status, 403);
+    assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "1" })).status, 200);
+    const after = await host(g); assert.equal(after.roles[th], o[1]); assert.equal(after.thief.done, true);
+    assert.equal((await post({ action: "state", code: g.code, pid: th })).myRole, o[1]);
+  });
+  await t("the Thief must swap when both middle cards are werewolves", async () => {
+    let g, found = false;
+    for (let i = 0; i < 150 && !found; i++) { g = await mk(5, { werewolf: 3, thief: 1 }); found = (await host(g)).thief.center.every(r => r === "werewolf"); }
+    assert(found, "never dealt two werewolves to the middle");
+    const th = of(g, "thief")[0];
+    await post({ action: "thiefwake", code: g.code, hostToken: g.hostToken });
+    assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "keep" })).status, 400);
+    assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "0" })).status, 200);
+  });
   await t("rejects more roles than players and tiny games", async () => {
     const g = await post({ action: "create" });
     for (const n of ["a", "b"]) await post({ action: "join", code: g.code, name: n });
