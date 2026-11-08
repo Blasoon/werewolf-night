@@ -26,19 +26,23 @@ const ROLES = {
     what: "If you die, for any reason, you take someone down with you.",
     night: "No night action. Sleep.",
     tip: "When you die, immediately shoot one player of your choice. They die too." },
-  dunce: { name: "Dunce", team: "Neutral", img: "cards/dunce.png", icon: "icons/dunce.png", color: "#59b2b6",
+  dunce: { name: "Dunce", team: "Neutral", img: "cards/dunce.png", icon: "icons/dunce.png", color: "#e0679b",
     what: "You win alone if the village votes you out. Being eaten does not count.",
     night: "No night action. Sleep.",
     tip: "Look suspicious, but not so suspicious that the wolves eat you first. Don’t make it too obvious." },
+  thief: { name: "Thief", team: "Village, until you swap", img: "cards/thief.png", icon: "icons/thief.png", color: "#3d93c9",
+    what: "Two extra cards sit face down in the middle. You may swap your Thief card for one of them, and keep that role for the rest of the game.",
+    night: "Wake first on night one. Look at the two middle cards and swap or keep. You may also swap on a later night. If both cards are werewolves, you must swap.",
+    tip: "You always get a choice of two unknown roles. A role you swap into works just like the card it came from." },
 };
-const NIGHT_ORDER = ["werewolf", "seer", "defender", "witch"]; // narrator wakes these in turn
+const NIGHT_ORDER = ["thief", "werewolf", "seer", "defender", "witch"];
 const BACK = "cards/back.png";
 
 // How a player died. Keys must match CAUSES in server.js.
 const CAUSES = { werewolves: "Eaten by werewolves", vote: "Voted out by the village", witch: "Poisoned by the witch", hunter: "Shot by the hunter" };
 // Automatic victory messages. "role" picks which icon to show.
 const WINS = {
-  wolves: { role: "werewolf", title: "The werewolves win", text: "The wolves now dominate the village. Nobody is left to stop them." },
+  wolves: { role: "werewolf", title: "The werewolves win", text: "The wolves now equal the villagers. Nobody is left to stop them." },
   village: { role: "villager", title: "The village wins", text: "Every werewolf has been found. Dawn breaks over a safe village." },
   dunce: { role: "dunce", title: "The Dunce wins", text: "The village voted out the Dunce, and fell for it. The Dunce wins alone." },
 };

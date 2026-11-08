@@ -24,6 +24,9 @@ Then open http://localhost:3000. Set `PORT` to change the port.
 ## Deaths and victory
 In the narrator sheet, tap a player to record how they died (werewolves, voted out, the witch, the hunter). They get a death screen on their phone and their role is revealed to everyone. Victory is checked automatically after every change: the village wins when no werewolves are left, the werewolves win when they equal everyone else, and a Dunce who is voted out wins alone. A mistaken death can be undone with Revive, which also undoes a victory.
 
+## The Thief
+Add a Thief in the lobby (the limit is one). Two extra villager cards join the deck; after dealing, the two cards left over sit in the middle. The Thief is always dealt to a player, and at least one werewolf always goes to a player. On the narrator sheet, tap **Wake the Thief** to show them the two middle cards on their phone. They can swap for one (and become that role for the rest of the game) or keep the Thief card and decide on a later night. If both middle cards are werewolves, they must swap. With test players, you can act for a fake Thief from the narrator sheet.
+
 ## Customising
 - `public/roles.js`: role text, teams, night order.
 - `public/cards/`: full card art (`back.png`, plus one `<role>.png` each). `public/icons/`: small round icons, one per role, used in lists.
