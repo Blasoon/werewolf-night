@@ -21,11 +21,16 @@ Then open http://localhost:3000. Set `PORT` to change the port.
 - **Real devices:** open the join link in a private window or a second phone to go through the real join flow.
 - **Automated:** `npm test` starts a temporary server and plays through a game, checking dealing, secrecy of roles, host-only actions and play-again.
 
+## Deaths and victory
+In the narrator sheet, tap a player to record how they died (werewolves, voted out, the witch, the hunter). They get a death screen on their phone and their role is revealed to everyone. Victory is checked automatically after every change: the village wins when no werewolves are left, the werewolves win when they equal everyone else, and a Dunce who is voted out wins alone. A mistaken death can be undone with Revive, which also undoes a victory.
+
 ## Customising
 - `public/roles.js`: role text, teams, night order.
 - `public/cards/`: full card art (`back.png`, plus one `<role>.png` each). `public/icons/`: small round icons, one per role, used in lists.
 - Role accent colours are set per role in `roles.js`. The app is dark by default, with a light theme behind the toggle in the header.
 - `public/style.css`: look and feel.
+- The Dunce card and icon (`cards/dunce.png`, `icons/dunce.png`) are placeholders. Replace them with your own art.
+- Death causes and victory messages are in `roles.js` (`CAUSES`, `WINS`); the matching win rules are in `winner()` in `server.js`.
 - Adding a role: add it to `roles.js`, drop in `cards/<key>.png`, and add the key to `ROLE_KEYS` in `server.js`.
 
 ## Deploying as a website

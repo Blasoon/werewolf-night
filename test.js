@@ -36,11 +36,45 @@ const t = async (name, fn) => { try { await fn(); console.log("ok   " + name); }
     const s = await st({ pid: pids[0] });
     assert.equal(typeof s.myRole, "string"); assert.equal(s.roles, undefined);
   });
-  await t("host can mark players out, then play again with same players", async () => {
-    await post({ action: "toggle", code, hostToken, id: pids[1] });
-    assert.equal((await st({ hostToken })).players.find(p => p.id === pids[1]).dead, true);
-    await post({ action: "again", code, hostToken });
-    const s = await st({ hostToken }); assert.equal(s.status, "lobby"); assert.equal(s.players.length, 8);
+  const mk = async (n, counts) => {
+    const g = await post({ action: "create" }); g.ids = [];
+    for (let i = 0; i < n; i++) g.ids.push((await post({ action: "join", code: g.code, name: "p" + i })).pid);
+    await post({ action: "counts", code: g.code, hostToken: g.hostToken, counts });
+    await post({ action: "deal", code: g.code, hostToken: g.hostToken });
+    g.roles = (await post({ action: "state", code: g.code, hostToken: g.hostToken })).roles; return g;
+  };
+  const host = g => post({ action: "state", code: g.code, hostToken: g.hostToken });
+  const kill = (g, id, cause) => post({ action: "kill", code: g.code, hostToken: g.hostToken, id, cause });
+  const of = (g, r) => g.ids.filter(id => g.roles[id] === r);
+  await t("a death records its cause and reveals only that role", async () => {
+    const g = await mk(5, { werewolf: 1, seer: 1 }); const [v, ...others] = of(g, "villager");
+    assert.equal((await kill(g, v, "bogus")).status, 400);
+    await kill(g, v, "werewolves");
+    const s = await post({ action: "state", code: g.code, pid: others[0] });
+    const dead = s.players.find(p => p.id === v), alive = s.players.find(p => p.id === others[0]);
+    assert.equal(dead.cause, "werewolves"); assert.equal(dead.role, "villager"); assert.equal(alive.role, undefined);
+  });
+  await t("village wins when the last werewolf dies; reviving undoes it", async () => {
+    const g = await mk(4, { werewolf: 1 }); const w = of(g, "werewolf")[0];
+    assert.equal((await host(g)).winner, null);
+    await kill(g, w, "vote");
+    const s = await post({ action: "state", code: g.code, pid: g.ids.find(i => i !== w) });
+    assert.equal(s.winner, "village"); assert(s.players.every(p => p.role));
+    await post({ action: "revive", code: g.code, hostToken: g.hostToken, id: w });
+    assert.equal((await host(g)).winner, null);
+  });
+  await t("werewolves win when they equal the villagers", async () => {
+    const g = await mk(4, { werewolf: 1 }); const [a, b] = of(g, "villager");
+    await kill(g, a, "werewolves"); assert.equal((await host(g)).winner, null);
+    await kill(g, b, "vote"); assert.equal((await host(g)).winner, "wolves");
+  });
+  await t("a Dunce voted out wins alone; being eaten does not", async () => {
+    const g = await mk(5, { werewolf: 1, dunce: 1 }); const d = of(g, "dunce")[0];
+    await kill(g, d, "werewolves"); assert.equal((await host(g)).winner, null);
+    await post({ action: "revive", code: g.code, hostToken: g.hostToken, id: d });
+    await kill(g, d, "vote"); assert.equal((await host(g)).winner, "dunce");
+    await post({ action: "again", code: g.code, hostToken: g.hostToken });
+    const s = await host(g); assert.equal(s.status, "lobby"); assert.equal(s.winner, null); assert.equal(s.players.length, 5);
   });
   await t("rejects more roles than players and tiny games", async () => {
     const g = await post({ action: "create" });

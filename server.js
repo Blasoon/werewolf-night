@@ -5,6 +5,7 @@ const PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml" };
 // Keep in sync with public/roles.js (villager is "everyone else", so it isn't listed)
 const ROLE_KEYS = ["werewolf", "defender", "hunter", "seer", "witch", "dunce"];
+const CAUSES = ["werewolves", "vote", "witch", "hunter"]; // keep in sync with CAUSES in public/roles.js
 const games = new Map();
 const rid = () => crypto.randomBytes(8).toString("hex");
 const fail = (m, s = 400) => Object.assign(new Error(m), { status: s });
@@ -14,10 +15,24 @@ function newCode() {
   while (games.has(c));
   return c;
 }
+// Victory is derived from the current deaths, so reviving someone (to fix a mistake) undoes a win.
+function winner(g) {
+  if (g.status !== "playing") return null;
+  const ids = g.players.map(p => p.id).filter(id => g.roles[id]);
+  if (ids.some(id => g.roles[id] === "dunce" && g.deaths[id] === "vote")) return "dunce";
+  if (!ids.some(id => g.roles[id] === "werewolf")) return null;
+  const alive = ids.filter(id => !g.deaths[id]);
+  const wolves = alive.filter(id => g.roles[id] === "werewolf").length;
+  if (wolves === 0) return "village";
+  if (wolves >= alive.length - wolves) return "wolves";
+  return null;
+}
 function view(g, b, host) {
+  const win = winner(g);
   const out = {
-    code: g.code, status: g.status, counts: g.counts, host,
-    players: g.players.map(p => ({ id: p.id, name: p.name, dead: g.dead.includes(p.id), bot: !!p.bot })),
+    code: g.code, status: g.status, counts: g.counts, host, winner: win, round: g.round,
+    // a role is public once its owner has died, and everyone's once the game is won
+    players: g.players.map(p => { const c = g.deaths[p.id]; return { id: p.id, name: p.name, bot: !!p.bot, dead: !!c, cause: c || null, role: c || win ? g.roles[p.id] : undefined }; }),
     joined: g.players.some(p => p.id === b.pid),
   };
   if (host) out.roles = g.roles;
@@ -26,7 +41,7 @@ function view(g, b, host) {
 }
 function act(b) {
   if (b.action === "create") {
-    const g = { code: newCode(), hostToken: rid(), status: "lobby", counts: { werewolf: 1, seer: 1 }, players: [], dead: [], roles: {}, made: Date.now() };
+    const g = { code: newCode(), hostToken: rid(), status: "lobby", counts: { werewolf: 1, seer: 1 }, players: [], deaths: {}, round: 0, roles: {}, made: Date.now() };
     games.set(g.code, g);
     return { code: g.code, hostToken: g.hostToken };
   }
@@ -48,7 +63,7 @@ function act(b) {
       needHost();
       if (g.status !== "lobby") throw fail("Only in the lobby");
       let added = 0;
-      for (const n of ["Claire", "Kaustubh", "Harks", "Ross", "Ellie", "Russel", "Miggie", "Molly", "Trey", "Lucy"]) {
+      for (const n of ["Claire", "Kaustubh", "Harks", "Ross", "Ellie", "Russel", "Miguel", "Molly", "Trey", "Lucy"]) {
         if (added >= 5 || g.players.length >= 20) break;
         if (g.players.some(p => p.name === `${n} (test)`)) continue;
         g.players.push({ id: rid(), name: `${n} (test)`, bot: true }); added++;
@@ -72,18 +87,19 @@ function act(b) {
       for (let i = list.length - 1; i > 0; i--) { const j = crypto.randomInt(i + 1); [list[i], list[j]] = [list[j], list[i]]; }
       g.roles = {}; g.players.forEach((p, i) => g.roles[p.id] = list[i]);
       g.counts = {}; list.forEach(r => g.counts[r] = (g.counts[r] || 0) + 1);
-      g.dead = []; g.status = "playing";
+      g.deaths = {}; g.round++; g.status = "playing";
       return {};
     }
-    case "toggle": {
+    case "kill": {
       needHost();
-      const i = g.dead.indexOf(b.id);
-      i < 0 ? g.dead.push(b.id) : g.dead.splice(i, 1);
+      if (!CAUSES.includes(b.cause) || !g.roles[b.id]) throw fail("Bad request");
+      g.deaths[b.id] = b.cause;
       return {};
     }
+    case "revive": { needHost(); delete g.deaths[b.id]; return {}; }
     case "again": { // same players, fresh deal
       needHost();
-      g.status = "lobby"; g.roles = {}; g.dead = [];
+      g.status = "lobby"; g.roles = {}; g.deaths = {};
       g.counts = Object.fromEntries(Object.entries(g.counts).filter(([k]) => k !== "villager"));
       return {};
     }
