@@ -23,7 +23,7 @@ const ROLES = {
     night: "The narrator shows you tonight’s victim. You may save them, poison anyone, both, or neither. Each potion works once.",
     tip: "Don’t waste your poison. A well-timed save can reveal a lot." },
   hunter: { name: "Hunter", team: "Village", img: "cards/hunter.png", icon: "icons/hunter.png", color: "#5fbf62",
-    what: "If you die, for any reason, you take someone down with you.",
+    what: "If you die at night due to the Werewolves, you take someone down with you.",
     night: "No night action. Sleep.",
     tip: "When you die, immediately shoot one player of your choice. They die too." },
 };
