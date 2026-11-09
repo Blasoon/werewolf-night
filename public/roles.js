@@ -26,7 +26,7 @@ const ROLES = {
     what: "If you die, for any reason, you take someone down with you.",
     night: "No night action. Sleep.",
     tip: "When you die, immediately shoot one player of your choice. They die too." },
-  dunce: { name: "Dunce", team: "Neutral", img: "cards/dunce.png", icon: "icons/dunce.png", color: "#e0679b",
+  dunce: { name: "Dunce", team: "Neutral", img: "cards/dunce.png", icon: "icons/dunce.png", color: "#5ab2b6",
     what: "You win alone if the village votes you out. Being eaten does not count.",
     night: "No night action. Sleep.",
     tip: "Look suspicious, but not so suspicious that the wolves eat you first. Don’t make it too obvious." },
