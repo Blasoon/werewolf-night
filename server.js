@@ -70,7 +70,7 @@ function act(b) {
       needHost();
       if (g.status !== "lobby") throw fail("Only in the lobby");
       let added = 0;
-      for (const n of ["Claire", "Kaustubh", "Harks", "Ross", "Ellie", "Russel", "Miguel", "Molly", "Trey", "Lucy"]) {
+      for (const n of ["Claire", "Kaustubh", "Harks", "Ross", "Ellie", "Russel", "Miguel", "Molly", "Trey", "Lucy", "Sonny", "Dixie", "Ollie", "Lewis", "Nina", "Beau", "Ben", "Alice", "Michael", "Sam" ]) {
         if (added >= 5 || g.players.length >= 20) break;
         if (g.players.some(p => p.name === `${n} (test)`)) continue;
         g.players.push({ id: rid(), name: `${n} (test)`, bot: true }); added++;
