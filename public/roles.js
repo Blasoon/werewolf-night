@@ -35,7 +35,7 @@ const ROLES = {
     night: "Wake first on night one. Look at the two middle cards and swap or keep. You may also swap on a later night. If both cards are werewolves, you must swap.",
     tip: "You always get a choice of two unknown roles. A role you swap into works just like the card it came from." },
 };
-const NIGHT_ORDER = ["thief", "werewolf", "seer", "defender", "witch"];
+const NIGHT_ORDER = ["thief", "werewolf", "defender", "seer", "witch"]; // narrator wakes these in turn
 const BACK = "cards/back.png";
 
 // How a player died. Keys must match CAUSES in server.js.

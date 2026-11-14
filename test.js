@@ -105,6 +105,22 @@ const t = async (name, fn) => { try { await fn(); console.log("ok   " + name); }
     assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "keep" })).status, 400);
     assert.equal((await post({ action: "thiefpick", code: g.code, pid: th, choice: "0" })).status, 200);
   });
+  await t("reveal rules decide whose role is shown after a death", async () => {
+    const g = await post({ action: "create" }); g.ids = [];
+    for (let i = 0; i < 5; i++) g.ids.push((await post({ action: "join", code: g.code, name: "p" + i })).pid);
+    await post({ action: "counts", code: g.code, hostToken: g.hostToken, counts: { werewolf: 1, seer: 1 } });
+    assert.equal((await post({ action: "reveal", code: g.code, night: false, day: true })).status, 403);
+    await post({ action: "reveal", code: g.code, hostToken: g.hostToken, night: false, day: true });
+    await post({ action: "deal", code: g.code, hostToken: g.hostToken });
+    assert.equal((await post({ action: "reveal", code: g.code, hostToken: g.hostToken, night: true, day: true })).status, 400);
+    g.roles = (await host(g)).roles; const [a, b] = of(g, "villager");
+    await kill(g, a, "werewolves"); await kill(g, b, "vote");
+    const s = await post({ action: "state", code: g.code, pid: of(g, "seer")[0] });
+    const pa = s.players.find(p => p.id === a), pb = s.players.find(p => p.id === b);
+    assert.equal(pa.cause, "werewolves"); assert.equal(pa.role, undefined);
+    assert.equal(pb.role, "villager");
+    assert.equal((await post({ action: "state", code: g.code, pid: a })).myRole, "villager");
+  });
   await t("rejects more roles than players and tiny games", async () => {
     const g = await post({ action: "create" });
     for (const n of ["a", "b"]) await post({ action: "join", code: g.code, name: n });

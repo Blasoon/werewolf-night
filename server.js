@@ -5,6 +5,7 @@ const PUB = path.join(__dirname, "public");
 const MIME = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".svg": "image/svg+xml" };
 // Keep in sync with public/roles.js (villager is "everyone else", so it isn't listed)
 const ROLE_KEYS = ["werewolf", "defender", "hunter", "seer", "witch", "dunce", "thief"];
+const NIGHT = ["werewolves", "witch"]; // deaths that happen at night; vote and hunter count as daytime
 const CAUSES = ["werewolves", "vote", "witch", "hunter"]; // keep in sync with CAUSES in public/roles.js
 const games = new Map();
 const rid = () => crypto.randomBytes(8).toString("hex");
@@ -30,9 +31,9 @@ function winner(g) {
 function view(g, b, host) {
   const win = winner(g);
   const out = {
-    code: g.code, status: g.status, counts: g.counts, host, winner: win, round: g.round,
-    // a role is public once its owner has died, and everyone's once the game is won
-    players: g.players.map(p => { const c = g.deaths[p.id]; return { id: p.id, name: p.name, bot: !!p.bot, dead: !!c, cause: c || null, role: c || win ? g.roles[p.id] : undefined }; }),
+    code: g.code, status: g.status, counts: g.counts, host, winner: win, round: g.round, reveal: g.reveal,
+    // a dead player's role is public only if the host's reveal setting covers how they died; everyone's once the game is won
+    players: g.players.map(p => { const c = g.deaths[p.id]; return { id: p.id, name: p.name, bot: !!p.bot, dead: !!c, cause: c || null, role: win || (c && g.reveal[NIGHT.includes(c) ? "night" : "day"]) ? g.roles[p.id] : undefined }; }),
     joined: g.players.some(p => p.id === b.pid),
   };
   if (host) { out.roles = g.roles; out.thief = g.thief && { ...g.thief, center: g.center }; }
@@ -48,7 +49,7 @@ function view(g, b, host) {
 }
 function act(b) {
   if (b.action === "create") {
-    const g = { code: newCode(), hostToken: rid(), status: "lobby", counts: { werewolf: 1, seer: 1 }, players: [], deaths: {}, round: 0, roles: {}, center: [], thief: null, made: Date.now() };
+    const g = { code: newCode(), hostToken: rid(), status: "lobby", counts: { werewolf: 1, seer: 1 }, players: [], deaths: {}, round: 0, roles: {}, center: [], thief: null, reveal: { night: true, day: true }, made: Date.now() };
     games.set(g.code, g);
     return { code: g.code, hostToken: g.hostToken };
   }
@@ -125,6 +126,12 @@ function act(b) {
       const i = parseInt(b.choice);
       if (i !== 0 && i !== 1) throw fail("Pick a card");
       g.roles[t.id] = g.center[i]; g.center[i] = "thief"; t.done = true; t.open = false;
+      return {};
+    }
+    case "reveal": {
+      needHost();
+      if (g.status !== "lobby") throw fail("Change this in the lobby");
+      g.reveal = { night: !!b.night, day: !!b.day };
       return {};
     }
     case "kill": {

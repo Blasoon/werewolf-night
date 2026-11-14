@@ -16,7 +16,7 @@ const icon = r => r ? `<img class="mini" src="${ROLES[r].icon}" alt="">` : `<spa
 const plist = () => G.players.length ? G.players.map(p => `<span class="tag ${p.dead ? "dead" : ""}">${esc(p.name)}</span>`).join("") : `<p class="m">Nobody has joined yet.</p>`;
 const detail = k => { const r = ROLES[k]; return `<p><span class="tag">${r.team}</span></p><p>${r.what}</p><p><b>Each night:</b> ${r.night}</p><p><b>Tip:</b> ${r.tip}</p>`; };
 const refs = c => Object.keys(c).filter(k => c[k] > 0).map(k => `<details><summary>${icon(k)}${ROLES[k].name} × ${c[k]}</summary>${detail(k)}</details>`).join("");
-const fallen = () => { const d = G.players.filter(p => p.dead); return d.length ? card(`<h2>The fallen</h2>` + d.map(p => `<div class="row r2">${icon(p.role)}<span><b>${esc(p.name)}</b><br><span class="m">${ROLES[p.role].name} · ${CAUSES[p.cause]}</span></span></div>`).join("")) : ""; };
+const fallen = () => { const d = G.players.filter(p => p.dead); return d.length ? card(`<h2>The fallen</h2>` + d.map(p => `<div class="row r2">${icon(p.role)}<span><b>${esc(p.name)}</b><br><span class="m">${p.role ? ROLES[p.role].name + " · " : ""}${CAUSES[p.cause]}</span></span></div>`).join("")) : ""; };
 
 function roleCard(k) {
   const r = ROLES[k]; // colour only appears once the card is face up, so a hidden card gives nothing away
@@ -30,6 +30,8 @@ const pickBox = p => `<div class="pickbox">` + (p.dead
   ? `<p class="m">${CAUSES[p.cause]}.</p><button data-a="revive" data-id="${p.id}">Revive ${esc(p.name)} (undo)</button>`
   : `<p class="m">How did ${esc(p.name)} die?</p>` + Object.keys(CAUSES).map(k => `<button data-a="kill" data-id="${p.id}" data-k="${k}">${CAUSES[k]}</button>`).join("")) + `<button class="g" data-a="cancel">Cancel</button></div>`;
 
+const rulesText = () => `Roles are ${G.reveal.night ? "shown" : "hidden"} when a player dies at night, and ${G.reveal.day ? "shown" : "hidden"} when they die by day.`;
+const sw = (k, label, sub) => `<div class="row"><span>${label}<br><span class="m">${sub}</span></span><button class="sw ${G.reveal[k] ? "on" : ""}" data-a="rv" data-k="${k}" role="switch" aria-checked="${G.reveal[k]}" aria-label="${label}"></button></div>`;
 function thiefCard() {
   const t = G.thief; if (!t) return "";
   const p = who(t.id), must = t.center.every(r => r === "werewolf"), bot = p && p.bot;
@@ -49,9 +51,10 @@ function hostView() {
   let h = card(`<p class="m" style="text-align:center">Game code</p><div class="code">${G.code}</div><p class="m" style="text-align:center">Friends visit <b>${esc(location.host)}</b> and enter it, or use the link.</p><button class="g" data-a="copy">Copy join link</button>`);
   if (G.status === "lobby") {
     h += card(`<h2>Lobby · ${n} joined</h2>` + G.players.map(p => `<div class="row"><span>${esc(p.name)}</span><button class="s g" data-a="kick" data-id="${p.id}">Remove</button></div>`).join("") + (n ? "" : `<p class="m">Waiting for players…</p>`) + `<button class="g" data-a="bots">Add 5 test players</button>`);
-    h += card(`<h2>Roles</h2>` + keys.map(k => `<div class="row r3">${icon(k)}<span>${ROLES[k].name}</span><span class="step"><button class="s" data-a="dec" data-k="${k}">−</button><b>${c[k] || 0}</b><button class="s" data-a="inc" data-k="${k}">+</button></span></div>`).join("") + `<div class="row r3">${icon("villager")}<span>Villagers (the rest)</span><span class="step"><b>${Math.max(vill, 0)}</b></span></div><p class="m">Rule of thumb: about 1 wolf per 4 players.</p>${c.thief ? `<p class="m">The Thief adds two extra villager cards to the deck. The two cards left over become the Thief’s options.</p>${c.werewolf ? "" : `<p class="err">The Thief needs at least one werewolf.</p>`}` : ""}${vill < 0 ? `<p class="err">More roles than players.</p>` : ""}<button data-a="deal" ${n < 3 || vill < 0 || (c.thief && !c.werewolf) ? "disabled" : ""}>Deal roles</button>`);
+    h += card(`<h2>Reveal rules</h2>` + sw("night", "Reveal role on a night death", "Eaten by werewolves or poisoned by the witch") + sw("day", "Reveal role on a day death", "Voted out or shot by the hunter") + `<p class="m">A player always sees their own role. Everyone’s roles are shown when the game ends.</p>`);
+    h += card(`<h2>Roles</h2>` + keys.map(k => `<div class="row r3">${icon(k)}<span>${ROLES[k].name}</span><span class="step"><button class="s" data-a="dec" data-k="${k}">−</button><b>${c[k] || 0}</b><button class="s" data-a="inc" data-k="${k}">+</button></span></div>`).join("") + `<div class="row r3">${icon("villager")}<span>Villagers (the rest)</span><span class="step"><b>${Math.max(vill, 0)}</b></span></div><p class="m">Rule of thumb: about 1 wolf per 4 players.</p>${c.thief ? `<p class="m">The Thief adds two extra villager cards to the deck. The two cards left over become the Thief’s options, and at least one werewolf always goes to a player.</p>${c.werewolf ? "" : `<p class="err">The Thief needs at least one werewolf.</p>`}` : ""}${vill < 0 ? `<p class="err">More roles than players.</p>` : ""}<button data-a="deal" ${n < 3 || vill < 0 || (c.thief && !c.werewolf) ? "disabled" : ""}>Deal roles</button>`);
   } else {
-    if (!G.winner && G.players.some(p => p.dead && p.role === "hunter") && !G.players.some(p => p.cause === "hunter"))
+    if (!G.winner && G.players.some(p => p.dead && G.roles[p.id] === "hunter") && !G.players.some(p => p.cause === "hunter"))
       h += card(`<h2>The Hunter takes a shot</h2><p class="m">The Hunter died. They choose one player to shoot: tap that player below and choose “Shot by the hunter”.</p>`);
     h += thiefCard();
     h += card(`<h2>Narrator sheet</h2><p class="m">Tap a player to record a death. ${G.players.filter(p => !p.dead).length} of ${n} alive.</p>` + G.players.map(p => { const r = G.roles[p.id]; return `<div class="row r3 pick" data-a="pick" data-id="${p.id}">${icon(r)}<span><b class="${p.dead ? "dead" : ""}">${esc(p.name)}</b><br><span class="m">${r ? ROLES[r].name : "No role"}${G.thief && G.thief.done && p.id === G.thief.id ? " (was Thief)" : ""}${p.dead ? " · " + CAUSES[p.cause] : ""}</span></span><button class="s g" data-a="prev" data-id="${p.id}">Preview</button></div>` + (S.pick === p.id ? pickBox(p) : ""); }).join(""));
@@ -61,7 +64,7 @@ function hostView() {
   return h;
 }
 function playerView() {
-  if (G.status === "lobby") return G.joined ? card(`<h2>You’re in!</h2><p class="m">Waiting for the host to deal roles.</p>${plist()}`) : card(`<h2>Join game ${G.code}</h2><input id="nm" placeholder="Your name" maxlength="20" value="${esc(S.name)}"><button data-a="join">Join</button>`);
+  if (G.status === "lobby") return G.joined ? card(`<h2>You’re in!</h2><p class="m">Waiting for the host to deal roles.</p>${plist()}<p class="m">${rulesText()}</p>`) : card(`<h2>Join game ${G.code}</h2><input id="nm" placeholder="Your name" maxlength="20" value="${esc(S.name)}"><button data-a="join">Join</button>`);
   const me = who(store("pid"));
   const h = (G.options ? thiefOptions() : "") + (G.myRole ? phone(G.myRole, me && me.cause) : card(`<p class="m">You weren’t dealt a role this game. Ask the host to play again.</p>`)) + (G.swapped ? card(`<p class="m">You started as the Thief and swapped cards.</p>`) : "");
   return h + card(`<h2>Players</h2>${plist()}`) + fallen() + card(`<h2>Roles in this game</h2>${refs(G.counts)}`);
@@ -112,6 +115,7 @@ app.addEventListener("click", async e => {
     if (a === "revive") { await api({ action: "revive", id }); S.pick = null; }
     if (a === "thiefwake") await api({ action: "thiefwake" });
     if (a === "thiefpick") await api({ action: "thiefpick", choice: k });
+    if (a === "rv") await api({ action: "reveal", ...G.reveal, [k]: !G.reveal[k] });
     if (a === "kick") await api({ action: "kick", id });
     if (a === "bots") await api({ action: "bots" });
     if (a === "deal") await api({ action: "deal" });
